@@ -1,3 +1,9 @@
+#CMP408 IoT and Cloud Secure Development
+#Adam Board - 2005335
+#Mini Project - Passwordless 2-Factor Authentication
+
+
+
 import RPi.GPIO as GPIO
 import time
 from mfrc522 import SimpleMFRC522
@@ -10,10 +16,35 @@ import csv
 import boto3
 
 
+#Grab AWS Creds from file
+with open("loginDetails.csv", "r") as file:
+    reader = csv.reader(file)
+    for row in reader:
+        accessKeyID = row[1]
+        secretAccessKey = row[2]
+
+
+#Grab RFID code from file
+with open("Authentication.csv", "r") as file:
+    reader = csv.reader(file)
+    for row in reader:
+        Auth = row[1]
+
+
+#setting up the rekognition API client
+facialrecog = boto3.client("rekognition", region_name="eu-west-2", 
+aws_Access_key_id=accessKeyID, aws_secret_access_key=secretAccessKey)
+
+bucketName = "AdamStorageBucket"
+
+#setting up the S3 client
+s3Buk = boto3.client('s3', aws_access_key_id=accessKeyID, 
+aws_secret_access_key=secretAccessKey)
 
 #Initialisation of Global Variables
 Phase1Validation = False
 Phase2Validation = False
+begin = False
 
 #Basic initialisation of Devices on System
 text = "Incorrect"
@@ -32,6 +63,8 @@ def InitialSetup():
     #Sets button GPIO to input and set initial value to be off (low)
     GPIO.setup(Button, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
 
+
+
 #This function is the beginning of the authentication process
 #There has been changes to the library because it does not work with specific RF card models
 def RFIDValidation():
@@ -42,7 +75,8 @@ def RFIDValidation():
         print(text)
     except:
         print("An error has occured")
-    if text == "Authentication":
+        exit()
+    if text == Auth:
         Phase1Validation == True
     else:
         Phase1Validation == False
@@ -82,6 +116,23 @@ def IncorrectID():
 def UnlockAWS():
     print("Here is The Code to your Personal Information, Enjoy!")
 
+
+
+print("ready to begin Authentication process, please press the button!")
+
+
+#will keep the user here until they press the button to continue to the authentication
+while begin == False:
+    time.sleep(5)
+    #Runs 'cat /proc/kmsg' and redirects output to a pipe
+    p = sub.Popen(('cat', '/proc/kmsg'), stdout=sub.PIPE)
+
+
+
+    for row in iter(p.stdout.readline, b''):
+        row = row.decode()
+        if "button_press" in row:
+            begin = True
 
 
 #Starting Point of program, Initialises the pins that are being 
