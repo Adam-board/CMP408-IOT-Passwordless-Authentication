@@ -2,22 +2,18 @@
 #include <linux/gpio.h>
 #include <linux/interrupt.h>
 
-static bool	State = 0;
-static unsigned int Led = 23;
-static unsigned int Button = 3;
+static unsigned int Button = 15;
 static unsigned int Irqnum = 0;
 static unsigned int Counter = 0;
 
 static irq_handler_t piirq_irq_handler(unsigned int irq, void *dev_id, struct pt_regs *regs){
-   State = !State;
-   gpio_set_value(Led, State);
 
-   printk(KERN_INFO "piirq: led state is : [%d] ", gpio_get_value(Led));
-   printk(KERN_INFO "piirq: button state is : [%d] ", gpio_get_value(Button));
-
+   printk(KERN_INFO "button_press");
    Counter++;
+   
    return (irq_handler_t) IRQ_HANDLED;
 }
+
 int __init piirq_init(void){
 	int result = 0;
     pr_info("%s\n", __func__);
@@ -25,15 +21,11 @@ int __init piirq_init(void){
 	printk("piirq: IRQ Test");
     printk(KERN_INFO "piirq: Initializing driver\n");
 
-    if (!gpio_is_valid(Led)){
-    	printk(KERN_INFO "piirq: invalid GPIO\n");
-    return -ENODEV;
-   }
-
-	   gpio_request(Led, "Led");
-	   gpio_direction_output(Led, 1);
-	   // Causes to appear in /sys/class/gpio/gpio16 for echo 0 > value
-	   gpio_export(Led, false);
+    if (!gpio_is_valid(Button)){
+    printk(KERN_INFO "piirq: invalid GPIO\n");
+    return -ENODEV;}
+	
+	  
 	   gpio_request(Button, "Button");
 	   gpio_direction_input(Button);
 	   gpio_set_debounce(Button, 200);
@@ -53,11 +45,9 @@ int __init piirq_init(void){
     return 0;
 }
 void __exit piirq_exit(void){
-   gpio_set_value(Led, 0);
-   gpio_unexport(Led);
+   
    free_irq(Irqnum, NULL);
    gpio_unexport(Button);
-   gpio_free(Led);
    gpio_free(Button);
    printk("piirq unloaded\n");
 }
@@ -65,5 +55,5 @@ module_init(piirq_init);
 module_exit(piirq_exit);
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Adam Board");
-MODULE_DESCRIPTION("RPi Button Press");
+MODULE_DESCRIPTION("RPi Button Press detection");
 MODULE_VERSION("0.5");

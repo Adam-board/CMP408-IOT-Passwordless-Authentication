@@ -9,9 +9,6 @@
 #include <linux/device.h>
 #include <linux/seq_file.h>
 
-
-
-
 static int DevBusy = 0;
 static int MajorNum = 100;
 static struct class*  ClassName  = NULL;
@@ -150,5 +147,5 @@ module_init(piio_init);
 module_exit(piio_exit);
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Adam Board");
-MODULE_DESCRIPTION("RPi GPIO Driver");
-MODULE_VERSION("0.1");
+MODULE_DESCRIPTION("RPi GPIO Interact Driver");
+MODULE_VERSION("0.2");

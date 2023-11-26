@@ -14,13 +14,12 @@ import RPi.GPIO as GPIO
 import time
 from mfrc522 import SimpleMFRC522
 from picamera import PiCamera
-import subprocess
 from PIL import Image
 import os
 import subprocess as sub
 import csv
 import boto3
-
+import uuid
 
 # ------------------------- Grab AWS Creds from file ------------------------- #
 with open("loginDetails.csv", "r") as file:
@@ -42,12 +41,11 @@ clientRek = boto3.client("rekognition", region_name="eu-west-2",
 aws_Access_key_id=accessKeyID, aws_secret_access_key=secretAccessKey)
 
 
-
 # ------------------------- setting up the S3 client ------------------------- #
 clientS3 = boto3.client('s3', aws_access_key_id=accessKeyID, 
 aws_secret_access_key=secretAccessKey)
 
-bucketName = "AdamStorageBucket"
+bucket = clientS3.bucket("adamStorageBucket")
 
 # -------------------- Initialisation of Global Variables -------------------- #
 Phase1Validation = False
@@ -59,8 +57,8 @@ text = "Incorrect"
 Buzzer = 21 #pin40
 Reader = SimpleMFRC522
 CamLight = 13 #pin33
-Button = 15
-Camera = PiCamera()
+Button = 15 #pin10
+Camera = PiCamera() #csi connector
 
 # ----------------------- inital setup of all the pins ----------------------- #
 def InitialSetup():
@@ -104,20 +102,20 @@ def PhotoValidation():
     Camera.capture('./photos/img_Valid.jpg')
     photoTaken = Image.open('./photos/img_Valid.jpg')
     photoTaken.save('./photos/img_Valid.jpg')
-    matchAuth = compareFaces(photoTaken)
-    if matchAuth = True:
+    matchAuth = CompareFaces(photoTaken)
+    if matchAuth == True:
        Phase2Validation = True 
        return
 
     else:
         Phase2Validation = False
-        incorrectID()
+        IncorrectID()
 
-
-def compareFaces(targetFile):
+# ------------ Function for comparing faces using Rekognition API ------------ #
+def CompareFaces(targetFile):
     
-    imageSource = open("./photos/img_Valid.jpg", "rb")
-    imageTarget = s3.open()
+    imageSource = bucket.object("MasterAdamPhoto.jpg")
+    imageTarget = open(targetFile, "rb")
 
     response = clientRek.compare_faces(SimilarityThreshold=99, SourceImage={"Bytes": imageSource.read()}, TargetImage={"Bytes": imageTarget.read()})
 
@@ -139,12 +137,14 @@ def compareFaces(targetFile):
             
             
 
-
-    
-    
-
 # ------- Uploads the randomly generated code to allow the user access ------- #
 def UnlockAWS():
+    code = uuid.uuid4().hex.upper()[0:8]
+    codeFile = open("staging.txt", "w")
+    codeFile.write("Gives access to user account")
+    codeFile.close()
+    print(str(code))
+    clientS3.upload_file("staging.txt", bucket, str(code) + ".txt")
 
     print("Here is The Code to your Personal Information, Enjoy!")
     
@@ -192,7 +192,7 @@ while begin == False:
 
 
 
-#used through an LKM for security purposes to setup the pins being used
+# -- used through an LKM for security purposes to setup the pins being used -- #
 InitialSetup()
 
 # ---------------- initiates the validation process with RFID ---------------- #
