@@ -1,6 +1,12 @@
-#CMP408 IoT and Cloud Secure Development
-#Adam Board - 2005335
-#Mini Project - Passwordless 2-Factor Authentication
+# ---------------------------------------------------------------------------- #
+#                    CMP408 IoT and Cloud Secure Development                   #
+# ---------------------------------------------------------------------------- #
+# ---------------------------------------------------------------------------- #
+#                             Adam Board - 2005335                             #
+# ---------------------------------------------------------------------------- #
+# ---------------------------------------------------------------------------- #
+#              Mini Project - Passwordless 2-Factor Authentication             #
+# ---------------------------------------------------------------------------- #
 
 
 
@@ -16,37 +22,39 @@ import csv
 import boto3
 
 
-#Grab AWS Creds from file
+# ------------------------- Grab AWS Creds from file ------------------------- #
 with open("loginDetails.csv", "r") as file:
     reader = csv.reader(file)
     for row in reader:
-        accessKeyID = row[1]
-        secretAccessKey = row[2]
+        accessKeyID = row[2]
+        secretAccessKey = row[3]
 
 
-#Grab RFID code from file
+# ------------------------- Grab RFID code from file ------------------------- #
 with open("Authentication.csv", "r") as file:
     reader = csv.reader(file)
     for row in reader:
         Auth = row[1]
 
 
-#setting up the rekognition API client
-facialrecog = boto3.client("rekognition", region_name="eu-west-2", 
+# ----------------------- Setting up Rekognition client ---------------------- #
+clientRek = boto3.client("rekognition", region_name="eu-west-2", 
 aws_Access_key_id=accessKeyID, aws_secret_access_key=secretAccessKey)
+
+
+
+# ------------------------- setting up the S3 client ------------------------- #
+clientS3 = boto3.client('s3', aws_access_key_id=accessKeyID, 
+aws_secret_access_key=secretAccessKey)
 
 bucketName = "AdamStorageBucket"
 
-#setting up the S3 client
-s3Buk = boto3.client('s3', aws_access_key_id=accessKeyID, 
-aws_secret_access_key=secretAccessKey)
-
-#Initialisation of Global Variables
+# -------------------- Initialisation of Global Variables -------------------- #
 Phase1Validation = False
 Phase2Validation = False
 begin = False
 
-#Basic initialisation of Devices on System
+# ----------------- Basic initialisation of Devices on System ---------------- #
 text = "Incorrect"
 Buzzer = 21 #pin40
 Reader = SimpleMFRC522
@@ -54,6 +62,7 @@ CamLight = 13 #pin33
 Button = 15
 Camera = PiCamera()
 
+# ----------------------- inital setup of all the pins ----------------------- #
 def InitialSetup():
     GPIO.setmode(GPIO.BCM)
     GPIO.setwarnings(False)
@@ -65,8 +74,7 @@ def InitialSetup():
 
 
 
-#This function is the beginning of the authentication process
-#There has been changes to the library because it does not work with specific RF card models
+# --------- RFID Card authentication as initial authentication stage --------- #
 def RFIDValidation():
     print("Beginning RF Validation, Please Present Card...")
     try:
@@ -82,8 +90,7 @@ def RFIDValidation():
         Phase1Validation == False
     
 
-
-
+# --------- Validation using facial recognition from Rekognition API --------- #
 def PhotoValidation():
     print("Beginning Photo, Please Point Camera Towards You!")
     time.sleep(3)
@@ -97,11 +104,52 @@ def PhotoValidation():
     Camera.capture('./photos/img_Valid.jpg')
     photoTaken = Image.open('./photos/img_Valid.jpg')
     photoTaken.save('./photos/img_Valid.jpg')
-    #TODO Use rekognition API here to check the photo against an existing photo
+    matchAuth = compareFaces(photoTaken)
+    if matchAuth = True:
+       Phase2Validation = True 
+       return
+
+    else:
+        Phase2Validation = False
+        incorrectID()
 
 
+def compareFaces(targetFile):
+    
+    imageSource = open("./photos/img_Valid.jpg", "rb")
+    imageTarget = s3.open()
+
+    response = clientRek.compare_faces(SimilarityThreshold=99, SourceImage={"Bytes": imageSource.read()}, TargetImage={"Bytes": imageTarget.read()})
+
+    for faceMatch in response["FaceMatches"]:
+        similarity = str(faceMatch["similarity"])
+        print("face matches with " + similarity + "% confidence")
+        if faceMatch["similarity"] > 99:
+            print("Face Matches!")
+            imageSource.close()
+            imageTarget.close()
+            return True
+            
+        else:
+            print("Faces do not match!")
+            imageSource.close()
+            imageTarget.close()
+            return False
+            
+            
+            
 
 
+    
+    
+
+# ------- Uploads the randomly generated code to allow the user access ------- #
+def UnlockAWS():
+
+    print("Here is The Code to your Personal Information, Enjoy!")
+    
+
+# ------------------ Alerts user of incorrect authentication ----------------- #
 def IncorrectID():
     print("Wrong ID/Photo, Please Try again!")
     GPIO.output(Buzzer, 0)
@@ -111,12 +159,20 @@ def IncorrectID():
         time.sleep(2)
         GPIO.output(Buzzer, 0)
         time.sleep(2)
+    begin == False
+    Phase1Validation = False
+    Phase2Validation = False
     RFIDValidation()
 
-def UnlockAWS():
-    print("Here is The Code to your Personal Information, Enjoy!")
 
 
+# ---------------------------------------------------------------------------- #
+#                             ^Function code above^                            #
+# ---------------------------------------------------------------------------- #
+
+# ---------------------------------------------------------------------------- #
+#                           Starting point of program                          #
+# ---------------------------------------------------------------------------- #
 
 print("ready to begin Authentication process, please press the button!")
 
@@ -135,11 +191,11 @@ while begin == False:
             begin = True
 
 
-#Starting Point of program, Initialises the pins that are being 
-#used through an LKM for security purposes
+
+#used through an LKM for security purposes to setup the pins being used
 InitialSetup()
 
-#initiates the validation process with RFID
+# ---------------- initiates the validation process with RFID ---------------- #
 RFIDValidation()
 
 #If the correct card is used, will begin second validation with photo 
@@ -148,9 +204,14 @@ if Phase1Validation == True:
     print("Passed Phase 1, Commencing Phase 2...")
     PhotoValidation()
 
+
+#if incorrect then it will play incorrect noise and require a rescan of the card
 elif Phase1Validation == False:
     IncorrectID()
 
 if Phase2Validation == True & Phase1Validation == True:
+    GPIO.output(CamLight, 1)
+    time.sleep(5)
+    GPIO.output(CamLight, 0)
     UnlockAWS()
     GPIO.cleanup()

@@ -1,0 +1,1 @@
+cmd_/home/cmp408/workspace/piirq/piirq.ko := /home/cmp408/tools/arm-bcm2708/arm-linux-gnueabihf/bin/arm-linux-gnueabihf-ld -r  -EL  --build-id  -T ./scripts/module-common.lds -T ./arch/arm/kernel/module.lds -o /home/cmp408/workspace/piirq/piirq.ko /home/cmp408/workspace/piirq/piirq.o /home/cmp408/workspace/piirq/piirq.mod.o;  true
