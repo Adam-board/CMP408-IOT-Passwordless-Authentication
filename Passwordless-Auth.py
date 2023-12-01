@@ -8,9 +8,6 @@
 #              Mini Project - Passwordless 2-Factor Authentication             #
 # ---------------------------------------------------------------------------- #
 
-
-
-import RPi.GPIO as GPIO
 import time
 from mfrc522 import SimpleMFRC522
 from picamera import PiCamera
@@ -54,23 +51,11 @@ begin = False
 
 # ----------------- Basic initialisation of Devices on System ---------------- #
 text = "Incorrect"
-Buzzer = 21 #pin40
+Buzzer = 21
 Reader = SimpleMFRC522
-CamLight = 13 #pin33
-Button = 15 #pin10
+CamLight = 13 
+Button = 15
 Camera = PiCamera() #csi connector
-
-# ----------------------- inital setup of all the pins ----------------------- #
-def InitialSetup():
-    GPIO.setmode(GPIO.BCM)
-    GPIO.setwarnings(False)
-    GPIO.setup(Buzzer, GPIO.OUT)
-    GPIO.setup(CamLight, GPIO.OUT)
-
-    #Sets button GPIO to input and set initial value to be off (low)
-    GPIO.setup(Button, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
-
-
 
 # --------- RFID Card authentication as initial authentication stage --------- #
 def RFIDValidation():
@@ -95,9 +80,9 @@ def PhotoValidation():
     print("Light will start flashing, after three flashes, camera will take photo!")
     time.sleep(5)
     for i in range (3):
-        GPIO.output(CamLight, 1)
+        os.system("./piiotest writepin 13 1")
         time.sleep(2)
-        GPIO.output(CamLight, 0)
+        os.system("./piiotest writepin 13 0")
         time.sleep(2)
     Camera.capture('./photos/img_Valid.jpg')
     photoTaken = Image.open('./photos/img_Valid.jpg')
@@ -147,22 +132,32 @@ def UnlockAWS():
     clientS3.upload_file("staging.txt", bucket, str(code) + ".txt")
 
     print("Here is The Code to your Personal Information, Enjoy!")
+    time.sleep(20)
+    CleanUp()
+
     
 
 # ------------------ Alerts user of incorrect authentication ----------------- #
 def IncorrectID():
     print("Wrong ID/Photo, Please Try again!")
-    GPIO.output(Buzzer, 0)
+    os.system("./piiotest writepin 21 0")
     time.sleep(2)
     for i in range (4):
-        GPIO.output(Buzzer, 1)
+        os.system("./piiotest writepin 21 1")
         time.sleep(2)
-        GPIO.output(Buzzer, 0)
+        os.system("./piiotest writepin 21 0")
         time.sleep(2)
     begin == False
     Phase1Validation = False
     Phase2Validation = False
     RFIDValidation()
+
+
+def CleanUp():
+        os.system("./piiotest writepin 13 0")
+        os.system("./piiotest writepin 21 0")
+        os.remove("./photos/img_Valid.jpg")
+        print("System Cleanup Complete! Have a Nice Day!")
 
 
 
@@ -210,8 +205,8 @@ elif Phase1Validation == False:
     IncorrectID()
 
 if Phase2Validation == True & Phase1Validation == True:
-    GPIO.output(CamLight, 1)
+    os.system("./piiotest writepin 13 1")
     time.sleep(5)
-    GPIO.output(CamLight, 0)
+    os.system("./piiotest writepin 13 0")
     UnlockAWS()
     GPIO.cleanup()
