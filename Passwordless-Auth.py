@@ -8,6 +8,7 @@
 #              Mini Project - Passwordless 2-Factor Authentication             #
 # ---------------------------------------------------------------------------- #
 
+import RPi.GPIO as GPIO
 import time
 from mfrc522 import SimpleMFRC522
 from picamera import PiCamera
@@ -154,9 +155,11 @@ def IncorrectID():
 
 
 def CleanUp():
+        
         os.system("./piiotest writepin 13 0")
         os.system("./piiotest writepin 21 0")
         os.remove("./photos/img_Valid.jpg")
+        GPIO.cleanup()
         print("System Cleanup Complete! Have a Nice Day!")
 
 
