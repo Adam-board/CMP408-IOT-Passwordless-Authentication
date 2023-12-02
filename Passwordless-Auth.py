@@ -31,7 +31,7 @@ with open("loginDetails.csv", "r") as file:
 with open("Authentication.csv", "r") as file:
     reader = csv.reader(file)
     for row in reader:
-        Auth = row[1]
+        Auth = row[0]
 
 
 # ----------------------- Setting up Rekognition client ---------------------- #
