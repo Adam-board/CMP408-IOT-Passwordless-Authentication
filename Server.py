@@ -35,14 +35,14 @@ def index():
 
 # ------------------ Function and route for data processing ------------------ #
 
-@app.route("/DataProcess", methods=["POST"])
+@app.route("/dataProcess", methods=["POST"])
 def DataProcess():
 
     info = "PersonalInfo"
     masterImage = "MasterImg"
 
     #Gathering the code from the input
-    accessCode = request.form.get("codeInput")
+    accessCode = request.form.get("insertCode")
 
     #Pattern for matching validation for code that has been inserted to ensure other files are not grabbed
     validation = r'^[a-zA-Z0-9]{8}$'
