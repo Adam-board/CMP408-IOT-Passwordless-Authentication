@@ -6,7 +6,7 @@ app = Flask(__name__)
 
 
 s3Client = boto3.client("S3")
-bucket = "adamStorageBucket"
+bucket = "adamstorage"
 
 
 if __name__ == '__main__':
@@ -17,15 +17,32 @@ if __name__ == '__main__':
 def AccessInfo(bucket, accessCode):
 
 #Initialising the variable before using it   
-    generateURL = 1
+    generateURLAccess = 1
+
+#Using presigned URLs gives secure access to the information within the S3 Bucket which expires to ensure it cannot be kept open longer than 5 minutes
 
     try:
-        generateURL = s3Client.generate_presigned_url("get_object", Params = 
-    {"Bucket": bucket, "Key": accessCode + ".txt" }, ExpiresIn = 200)
+        generateURLAccess = s3Client.generate_presigned_url("get_object", Params = 
+    {"Bucket": bucket, "Key": accessCode + ".txt" }, ExpiresIn = 300)
     except Exception as e:
         pass
 
-    return generateURL
+    try:
+        generateURLImage = s3Client.generate_presigned_url("get_object", Params = 
+    {"Bucket": bucket, "Key": "personalInfo.txt" }, ExpiresIn = 300)
+    
+    except Exception as e:
+        pass
+
+
+    try:
+        generateURLInfo = s3Client.generate_presigned_url("get_object", Params = 
+    {"Bucket": bucket, "Key": "masterImage.jpg" }, ExpiresIn = 300)
+
+    except Exception as e:
+        pass
+
+    return generateURLAccess, generateURLImage, generateURLInfo
 
 # ---------------------- Function and route for homepage --------------------- #
 
@@ -38,9 +55,6 @@ def index():
 @app.route("/dataProcess", methods=["POST"])
 def DataProcess():
 
-    info = "PersonalInfo"
-    masterImage = "MasterImg"
-
     #Gathering the code from the input
     accessCode = request.form.get("insertCode")
 
@@ -50,12 +64,12 @@ def DataProcess():
     #Checks to ensure the access code meets the requirements and isn't a injection attempt
     if re.match(validation, accessCode):
         matchResult = s3Client.list_objects_v2(Bucket=bucket, prefix=accessCode)
-        information = s3Client.list_objects_v2(Bucket=bucket, prefix=info)
-        image = s3Client.list_objects_v2(Bucket=bucket, prefix=masterImage)
+        information = 0
+        image = 0
 
         if 'Contents' in matchResult:
             #if the code exists
-            contents = AccessInfo(bucket, accessCode)
+            contents, masterImage, info = AccessInfo(bucket, accessCode)
         else:
             #tell user that their input does not exist
             text = "Input is not valid and this does not exist"
