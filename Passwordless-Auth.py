@@ -19,6 +19,7 @@ import subprocess as sub
 import csv
 import boto3
 import uuid
+from urllib import parse
 
 # -------------------- Initialisation of Global Variables -------------------- #
 Phase1Validation = False
@@ -83,7 +84,7 @@ print("S3 Connected!")
 
 # --------- RFID Card authentication as initial authentication stage --------- #
 def RFIDValidation():
-    print("Beginning RF Validation, Please Present Card... will take about 5 seconds")
+    print("Beginning RF Validation, Please Present Card...")
     id, text = Scanner.read()
     print("Here is our details")
     print(text)
@@ -111,7 +112,7 @@ def PhotoValidation():
         os.system("./piiotest writepin 13 0")
         time.sleep(1)
     Camera.capture('img_Valid.jpg')
-    print("photo is being taken")
+    print("photo has been taken")
     photoTaken = Image.open('img_Valid.jpg')
     photoTaken.save('img_Valid.jpg')
     matchAuth = CompareFaces()
@@ -129,20 +130,20 @@ def PhotoValidation():
 def CompareFaces():
     
     clientS3.download_file(bucket,"masterImage.jpg","masterImage.jpg")
-    print("master iamge downloaded, beginning to open files")
+    print("master image downloaded, beginning to open files")
     time.sleep(2)
     imageSource = open("masterImage.jpg", "rb")
-    imageTarget = open("lsimg_Valid.jpg", "rb")
+    imageTarget = open("img_Valid.jpg", "rb")
 
     print("both files have been opened, beginning comparison")
     time.sleep(2)
     response = clientRek.compare_faces(SimilarityThreshold=99, SourceImage={"Bytes": imageSource.read()}, TargetImage={"Bytes": imageTarget.read()})
 
     for faceMatch in response["FaceMatches"]:
-        similarity = (faceMatch["similarity"])
+        similarity = str(faceMatch["Similarity"])
         print("face matches with " + similarity + "% confidence")
         time.sleep(4)
-        if faceMatch["similarity"] >= 99:
+        if faceMatch["Similarity"] >= 99:
             print("Face Matches!")
             imageSource.close()
             imageTarget.close()
@@ -166,6 +167,7 @@ def UnlockAWS():
     codeFile.write("Access Granted")
     codeFile.close()
     print(str(code))
+    deleteTags = {"Delete": ""}
     clientS3.upload_file("staging.txt", bucket, str(code) + ".txt")
 
     print("Here is The Code to your Personal Information, Enjoy!")
@@ -192,9 +194,9 @@ def CleanUp():
         
         os.system("./piiotest writepin 13 0")
         os.system("./piiotest writepin 21 0")
-        os.remove("img_Valid.jpg")
         print("System Cleanup Complete! Have a Nice Day!")
         GPIO.cleanup()
+        exit()
         
 
 

@@ -5,7 +5,21 @@ import re
 app = Flask(__name__)
 
 
-s3Client = boto3.client("S3")
+# ------------------------- Grab AWS Creds from file ------------------------- #
+
+print("Accessing Login Details")
+with open("Flask_accessKeys.csv", "r") as file:
+    reader = csv.reader(file)
+    for row in reader:
+        accessKeyID = row[0]
+        secretAccessKey = row[1]
+
+
+
+# ------------------------- setting up the S3 client ------------------------- #
+s3Client = boto3.client('s3', aws_access_key_id=accessKeyID, 
+aws_secret_access_key=secretAccessKey)
+
 bucket = "adamstorage"
 
 
