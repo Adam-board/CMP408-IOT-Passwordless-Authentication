@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Personal Information</title>
+</head>
+<body style="text-align: center;">
+
+    <div>
+        <h2>Master Photo</h2>
+
+        {% if Image %}
+        <img src={{ Image }} style="width: 550px;">
+        {% endif %}
+        <h2>Personal Information</h2>
+        {% if Information %}
+        <embed src= {{ Information }}>
+        {% endif %}
+    </div>
+
+
+</body>
