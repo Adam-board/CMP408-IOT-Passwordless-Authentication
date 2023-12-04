@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Passwordless-Auth</title>
+</head>
+<body style="text-align: center;">
+
+<h1>Please Complete Authentication Process to Access Personal Data!</h1>
+<h2>Once you have the code, please insert into the form!</h2>
+<form method="POST" action="/dataProcess">
+    <input type="text" name="insertCode" placeholder="Enter Generated Code">
+    <input type="submit" value="Submit">
+    </form>
+
+    <div>
+        {% if text%}
+        <h1 style="color: red;">{{ text }}</h1>
+        {% endif %}
+
+    </div>
+
+</body>

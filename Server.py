@@ -1,21 +1,16 @@
 from flask import Flask, render_template, request, redirect, send_file
 import boto3
+from botocore.client import Config
 import re
 import csv
 
 app = Flask(__name__)
 
-
-
-
 # ------------------------- setting up the S3 client ------------------------- #
-s3Client = boto3.client('s3')
+s3Client = boto3.client('s3',config=Config(signature_version="s3v4"))
 
 bucket = "adamstorage"
 
-
-if __name__ == '__main__':
-    app.run(debug=True)
 
 # ----------------- Function to gain access to personal data ----------------- #
 
@@ -23,12 +18,14 @@ def AccessInfo(bucket, accessCode):
 
 #Initialising the variable before using it   
     generateURLAccess = 1
+    public_urls = []
 
 #Using presigned URLs gives secure access to the information within the S3 Bucket which expires to ensure it cannot be kept open longer than 5 minutes
 
     try:
         generateURLAccess = s3Client.generate_presigned_url("get_object", Params = 
     {"Bucket": bucket, "Key": accessCode + ".txt" }, ExpiresIn = 300)
+    
     except Exception as e:
         pass
 
@@ -39,13 +36,17 @@ def AccessInfo(bucket, accessCode):
     except Exception as e:
         pass
 
-
+    
     try:
         generateURLInfo = s3Client.generate_presigned_url("get_object", Params = 
     {"Bucket": bucket, "Key": "masterImage.jpg" }, ExpiresIn = 300)
 
     except Exception as e:
         pass
+
+    print(generateURLAccess)
+    print(generateURLImage)
+    print(generateURLInfo)
 
     return generateURLAccess, generateURLImage, generateURLInfo
 
@@ -68,13 +69,13 @@ def DataProcess():
 
     #Checks to ensure the access code meets the requirements and isn't a injection attempt
     if re.match(validation, accessCode):
-        matchResult = s3Client.list_objects_v2(Bucket=bucket, prefix=accessCode)
+        matchResult = s3Client.list_objects_v2(Bucket=bucket, Prefix=accessCode)
         information = 0
         image = 0
 
         if 'Contents' in matchResult:
             #if the code exists
-            contents, masterImage, info = AccessInfo(bucket, accessCode)
+            contents, image, information = AccessInfo(bucket, accessCode)
         else:
             #tell user that their input does not exist
             text = "Input is not valid and this does not exist"
@@ -85,8 +86,11 @@ def DataProcess():
             return render_template('index.html', text=text)
         else:
             #display the user's information on different page
-            return render_template('DataDisplay.html', image = image, information = information)
+            return render_template('DataDisplay.html', Image = information, Information = image)
     else:
         #informs the user that the code entered is invalid
         text = "The code inserted is invalid"
         return render_template('index.html', text=text)
+    
+if __name__ == '__main__':
+    app.run(debug=True)
